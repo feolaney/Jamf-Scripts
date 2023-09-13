@@ -53,7 +53,7 @@ This script is designed to collect and submit specified log files to IT in macOS
 
 This script facilitates log file management by allowing simple log submission from users to IT through a friendly interface.
 
-**Homework for the user**
+==**Homework for the user**==
 The script provided was initially created with the help of an automation service that generated the AWS PreSigned URL using an AWS Lambda Function. This approach was used to securely generate the AWS Upload URL off the local device, avoiding the need to share API credentials. In order for this script to be effectively adopted and used, this function may need to be replicated or replaced to suit your specific needs.
 
 The `generateS3BucketURL` function is responsible for initiating the creation of the AWS PreSigned URL. It was observed that the URL generation process took between 1 to 3 minutes when using the automation API. To account for this delay, a UUID was returned by the function, which could then be supplied to the automation resource to collect the URL when finished.
