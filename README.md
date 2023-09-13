@@ -31,7 +31,7 @@ When deploying the scripts, be sure to supply the correct encrypted string, salt
 2. [selfServiceLogSubmissionTool.sh]()
 
 ## Script Descriptions
-
+****
 ### Power Assertion Management
 
 This script is used to manage power assertions in macOS environments with Jamf management, enabling a delay in Jamf policy executions. It takes Jamf Custom Event Trigger and a set of assertions to ignore as inputs and performs the following main operations:
@@ -41,7 +41,7 @@ This script is used to manage power assertions in macOS environments with Jamf m
 - Creates a new script and Launch Daemon if active power assertions are found, running the script every 15 minutes
 
 This script minimizes disruptions to users while managing power assertions, for example, during video calls or when specific applications require an active display.
-
+****
 ### Log Collection and Submission
 
 This script is designed to collect and submit specified log files to IT in macOS environments. It allows users to select the type of log files they want to submit, processes the logs, and performs the operations:
@@ -52,3 +52,15 @@ This script is designed to collect and submit specified log files to IT in macOS
 - Notifies IT via Slack when log files are submitted successfully or if there are any errors
 
 This script facilitates log file management by allowing simple log submission from users to IT through a friendly interface.
+
+**Homework for the user**
+The script provided was initially created with the help of an automation service that generated the AWS PreSigned URL using an AWS Lambda Function. This approach was used to securely generate the AWS Upload URL off the local device, avoiding the need to share API credentials. In order for this script to be effectively adopted and used, this function may need to be replicated or replaced to suit your specific needs.
+
+The `generateS3BucketURL` function is responsible for initiating the creation of the AWS PreSigned URL. It was observed that the URL generation process took between 1 to 3 minutes when using the automation API. To account for this delay, a UUID was returned by the function, which could then be supplied to the automation resource to collect the URL when finished.
+
+This process can be seen in the `generateS3BucketURL` function, where the UUID is collected. Then, within the locally created script from lines 282-307, the UUID is used to check if the URL has been generated. The script will periodically check for the URL generation before proceeding to upload the logs.
+
+For more information on AWS Lambda Function invocations and related API documentation, refer to the following resources:
+
+- [Invoking AWS Lambda Functions](https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html)
+- [Invoke in AWS Lambda API Documentation](https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html)
