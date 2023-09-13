@@ -1,40 +1,51 @@
 #!/bin/bash
 
-#                 Name: Jamf Policy delay script
-#           Created by: Stephen Laney                
-#          Description: Check macOS power assertions to delay the execution of Jamf policies using launchd
-#        Creation date: 05/18/2023
-#   Last Modified Date: 09/12/2023
-#            More Info: 
-#           Disclaimer: This script is provided "as is", without warranty of any kind, express or implied. In no event will the 
-#                       author be held liable for any damages or consequences arising from the use of this script.
+# ============================================================================
+# Script Information:
+# 
+# Author        : Stephen Laney
+# Creation Date : 2023-05-18
+# Last Modified : 2023-09-12
+# 
+# Purpose     : Delay the execution of Jamf policies using launchd by checking macOS power assertions
+# Usage       : Integrated with Jamf policy management for macOS systems
+# Contact     : Mac Admins Slack - slaney
+# 
+# Disclaimer  : This script is provided "as is", without warranty of any kind, express or implied. In no event will the 
+#               author be held liable for any damages or consequences arising from the use of this script.
+# ============================================================================
 
 
-# This script is designed to manage power assertions in a macOS environment with Jamf management.
-# The purpose is to check for any active power assertions that prevent the display from going idle or sleep. 
-# Intended power assertions this script is concerned with are video call assertions, as to not disrupt users when in video calls.
-# Power assertios that are normal can be ignored with the assertionsToIgnore variable.  The follwing are examples of assertions to ignore:
-# firefox,Google Chrome,Safari,Microsoft Edge,Opera,Amphetamine,caffeinate,Jolt of Caffeine,Garmin Express Map Updates
+# ------------------------------------------------------------------------------------------------------------------
+# Script Summary:
+#
+# This script is designed to manage power assertions in a macOS environment with Jamf management to delay the execution of Jamf policies using launchd. It checks for active power assertions that prevent the display from going idle or sleep and intelligently avoids disrupting users while they are in video calls or using specific applications that require the display to be active.
+#
+# The script contains the following main functionalities:
+#   - Check for any active power assertions that should not be ignored and notify if detected.
+#   - Trigger a Jamf policy event if an active power assertion matches one in the list of ignored assertions.
+#   - Create a new script file in /var/tmp directory and a Launch Daemon that runs the new script every 15 minutes if active power assertions are found.
+#   - Unload the Launch Daemon and delete the script file each time the new script is run successfully.
+#
+# Functions in the script:
+#   - createScript: Creates a new script file that checks for power assertions and triggers the Jamf policy if conditions are met.
+#   - createDaemon: Creates a Launch Daemon that runs the newly created script at a specified interval.
+#
+# To accommodate new assertions, modify the list of assertions to ignore passed through the input variable $5.
+# ------------------------------------------------------------------------------------------------------------------
 
-# The script receives two inputs, a Jamf Custom Event Trigger and a set of assertions to ignore.
-# These inputs can be passed as command-line arguments when the script is called.
+# This script manages power assertions in macOS environments with Jamf management to delay Jamf policy executions.
+# It checks for active power assertions (e.g. video call assertions) and reacts without disrupting users.
 
-# The script starts by checking for any active power assertions that should not be ignored.
-# If such assertions are found, the script notifies that they were detected and exits.
+# The script takes two inputs: a Jamf Custom Event Trigger and a set of assertions to ignore (comma-separated).
+# These can be passed as command-line arguments.
 
-# If an active power assertion matches one in the list of assertions to ignore, 
-# the script triggers a Jamf policy event using the provided custom event trigger and exits.
-
-# If  active power assertions are found
-# the script creates a new script file in /var/tmp directory. This new script essentially performs the same functions as the original script, 
-# checking for power assertions, and reacting accordingly. 
-
-# The script then creates a Launch Daemon that runs the new script every 15 minutes.
-# The Launch Daemon is unloaded and the script file is deleted each time the new script is run successfully. 
-
-# This ensures the system continues to check for power assertions periodically 
-# and takes appropriate actions as specified by the script.  When conditions are correct then the Jamf Policy will run
-# and the script will remove/clean the Launch Daemon and Script
+# Workflow:
+# 1. Checks for active power assertions that shouldn't be ignored. If found, notifies and exits.
+# 2. Triggers Jamf policy event if an active power assertion matches ignored assertions.
+# 3. If active power assertions found, creates a new script (in /var/tmp) and a Launch Daemon running every 15 minutes.
+# 4. When the new script runs successfully, unloads Launch Daemon, deletes script file, and triggers the Jamf policy.
+# 5. Cleans up the Launch Daemon and script upon completion.
 
 
 # There are multiple types of power assertions an app can assert.
