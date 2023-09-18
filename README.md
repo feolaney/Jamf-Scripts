@@ -69,8 +69,8 @@ For more information on AWS Lambda Function invocations and related API document
 ### Local Alias Creation
 Alias Creation Based on Asset Inventory System This script is used to add a macOS local user alias based on information pulled from an external asset inventory system. The script performs the following main operations:
 
-Fetches user information from external asset management system
-Extracts the first name of the assigned user
-Checks if the alias already exists for the current user
-If not, sets the alias for the current user
+- Fetches user information from external asset management system
+- Extracts the first name of the assigned user
+- Checks if the alias already exists for the current user
+- If not, sets the alias for the current user
 This script automates the process of alias creation for macOS users, simplifying user management in systems integrated with external asset inventory systems.
