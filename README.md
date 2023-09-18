@@ -28,7 +28,7 @@ When deploying the scripts, be sure to supply the correct encrypted string, salt
 ## Available Scripts
 
 1. [jamfLocalPolicyDelay.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/jamfLocalPolicyDelay.sh)
-2. [selfServiceLogSubmissionTool.sh]()
+2. [selfServiceLogSubmissionTool.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/Scripts/selfSerivceLogSubmissionTool.sh)
 3. [updateAliasBasedOnUserName.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/Scripts/updateAliasBasedOnUserName.sh)
 
 ## Script Descriptions
