@@ -29,6 +29,7 @@ When deploying the scripts, be sure to supply the correct encrypted string, salt
 
 1. [jamfLocalPolicyDelay.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/jamfLocalPolicyDelay.sh)
 2. [selfServiceLogSubmissionTool.sh]()
+3. [updateAliasBasedOnUserName.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/Scripts/updateAliasBasedOnUserName.sh)
 
 ## Script Descriptions
 ****
@@ -64,3 +65,12 @@ For more information on AWS Lambda Function invocations and related API document
 
 - [Invoking AWS Lambda Functions](https://docs.aws.amazon.com/lambda/latest/dg/urls-invocation.html)
 - [Invoke in AWS Lambda API Documentation](https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html)
+****
+### Local Alias Creation
+Alias Creation Based on Asset Inventory System This script is used to add a macOS local user alias based on information pulled from an external asset inventory system. The script performs the following main operations:
+
+Fetches user information from external asset management system
+Extracts the first name of the assigned user
+Checks if the alias already exists for the current user
+If not, sets the alias for the current user
+This script automates the process of alias creation for macOS users, simplifying user management in systems integrated with external asset inventory systems.
