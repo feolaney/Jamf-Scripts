@@ -73,4 +73,5 @@ Alias Creation Based on Asset Inventory System This script is used to add a macO
 - Extracts the first name of the assigned user
 - Checks if the alias already exists for the current user
 - If not, sets the alias for the current user
+
 This script automates the process of alias creation for macOS users, simplifying user management in systems integrated with external asset inventory systems.
