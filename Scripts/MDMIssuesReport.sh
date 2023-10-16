@@ -67,7 +67,7 @@ smartGroupId=""
 
 # Set Filepath if you want the report saved to a txt file.  example: /path/to/your/report.txt
 
-reportLocation="/Users/Shared/mdmIssuesReport.txt"
+reportLocation=""
 
 # ------------------------------------------------------------------------------------------------------------------
 # Script Variables
