@@ -59,7 +59,7 @@ When deploying the scripts, be sure to supply the correct encrypted string, salt
 1. [jamfLocalPolicyDelay.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/jamfLocalPolicyDelay.sh)
 2. [selfServiceLogSubmissionTool.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/Scripts/selfSerivceLogSubmissionTool.sh)
 3. [updateAliasBasedOnUserName.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/Scripts/updateAliasBasedOnUserName.sh)
-4. [MDMIssuesReport.sh]()
+4. [MDMIssuesReport.sh](https://github.com/feolaney/Jamf-Scripts/blob/main/Scripts/MDMIssuesReport.sh)
 
   
 
@@ -159,6 +159,8 @@ Script could run for a while if the search smart group is large
 - `jssApiPassword`: Set this variable to the password for the Jamf Pro API user. This is also required for making API requests.
     
 - `smartGroupId`: Set this variable to the ID number of the smart group in your Jamf Pro system. All computers within this group will be checked.
+
+- `reportLocation`: Set this variable if you want the report saved to a .txt file. The current date will be appended to the end of the filename as to not delete/copy over an existing report
     
 - `statusTexts`: This variable is an array of status messages. The script will attempt to find these statuses in each computer's command history. Set the statuses according to the issues you want to identify. For example, a status message might indicate a problem with MDM communication or that a required configuration profile is missing.
 	- Example: `statusTexts=("The device token is not active for the specified topic." "Another status message")`
