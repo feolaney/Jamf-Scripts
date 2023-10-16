@@ -1,13 +1,45 @@
 #!/bin/zsh
 
-################
-################
-# JAMF API to set Name Change Variable to No complete with authentication process
-################
-################
+# ============================================================================
+# Script Information:
+# 
+# Author        : Stephen Laney
+# Creation Date : 2023-10-16
+# Last Modified : 2023-10-16
+# 
+# Purpose     : Check Jamf Smart Group computers for particular command status using Jamf API
+# Usage       : Cron jobs or manual execution
+# Contact     : Mac Admins Slack - slaney
+# 
+# Disclaimer  : This script is provided "as is", without warranty of any kind, express or implied. In no event will the 
+#               author be held liable for any damages or consequences arising from the use of this script.
+# ============================================================================
 
-# Define the list of status texts to search for
-#  statusTexts=("The device token is not active for the specified topic." "Another status message")
+
+# ------------------------------------------------------------------------------------------------------------------
+# Script Summary:
+#
+# This script interacts with the Jamf API to fetch information from a given Jamf Smart Group of computers and identifies 
+# specific status messages within each computer's command history. It uses the Jamf Pro API for authentication and retrieving 
+# computer information. The end goal is to generate lists of computer IDs that have encountered each specified status message.
+#
+# The script contains the following main functionalities:
+#   - Authenticate to Jamf Pro API.
+#   - Handle API Token renewal.
+#   - Retrieve list of computers within a specified Smart Group.
+#   - Iterate over each computer, fetching its history and checking for specified status texts.
+#   - Generate a list of computer IDs for each specified status text.
+#   - Print out all computer IDs having encountered each specific status text.
+#
+# Functions in the Script:
+#   - DecryptCredentials: Decrypts a string using OpenSSL.
+#   - GetJamfProAPIToken: Fetches a new API token.
+#   - APITokenValidCheck: Checks if the API token is still valid.
+#   - CheckAndRenewAPIToken: Checks the token validity and renews it if required.
+#   - InvalidateToken: Invalidates the current token.
+#
+# To accommodate new status texts, modify the 'statusTexts' array by adding the new status text.
+# ------------------------------------------------------------------------------------------------------------------
 
 # 'statusTexts' is an array of status texts. These status messages will be searched for in each computer's history.
 # Any computer with a history item whose status matches any of these texts will have its ID added to a list.
