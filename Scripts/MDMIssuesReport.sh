@@ -41,6 +41,8 @@
 # To accommodate new status texts, modify the 'statusTexts' array by adding the new status text.
 # ------------------------------------------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------------------------------------------
+# Admin Set Variables
 # 'statusTexts' is an array of status texts. These status messages will be searched for in each computer's history.
 # Any computer with a history item whose status matches any of these texts will have its ID added to a list.
 # For example, "The device token is not active for the specified topic." status might indicate that the computer
@@ -63,11 +65,15 @@ apiUser=""
 
 smartGroupId=""
 
+# Set Filepath if you want the report saved to a txt file.  example: /path/to/your/report.txt
 
+reportLocation="/Users/Shared/mdmIssuesReport.txt"
+
+# ------------------------------------------------------------------------------------------------------------------
 # Script Variables
 
 curlOptions=(--silent --show-error --connect-timeout 60 --fail)
-
+dateFormat=$(date '+%Y-%m-%d_%H-%M-%S')
 myJssBaseurl=$( /usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf jss_url )
 myJssApiurl="${myJssBaseurl}api/v1/jamf-management-framework/redeploy/"
 #
@@ -151,21 +157,29 @@ fi
 #
 #
 
-GetJamfProAPIToken
-################
-# Beaer Token setup
-################
-
+# If reportLocation is not empty add the date to the end of the filename
+#   (this ensures old reports won't be deleted)
+if [[ -n $reportLocation ]]; then
+    # Extract the filename without extension and the extension
+    filename=${${reportLocation##*/}%.*}
+    extension=${reportLocation##*.}
+    dir=${reportLocation%/*}
+  
+    # Add the date to the filename and concatenate extension
+    reportLocation="${dir}/${filename}_${dateFormat}.${extension}"
+fi
 
 # If jssApiPassword or apiUser is not set, prompt the user for these values
-if [[ -z "${jssApiPassword// }" ]]; then
-  echo "Please enter the jssApiPassword:"
-  read jssApiPassword
-fi
+
 
 if [[ -z "${apiUser// }" ]]; then
   echo "Please enter the apiUser:"
   read apiUser
+fi
+
+if [[ -z "${jssApiPassword// }" ]]; then
+  echo "Please enter the jssApiPassword:"
+  read jssApiPassword
 fi
 
 if [[ -z "${smartGroupId// }" ]]; then
@@ -173,11 +187,7 @@ if [[ -z "${smartGroupId// }" ]]; then
   read smartGroupId
 fi
 
-
-authtoken=$(curl "${curlOptions[@]}" -k -u "${apiUser}:${jssApiPassword}" -X POST "${myJssBaseurl}/uapi/auth/tokens" -H "accept: application/json")
-# Parse the token from the response using awk
-jamfApiToken=$(echo "$authtoken" | awk -F '"' '{for(i=1;i<=NF;i++)if($i=="token")print $(i+2)}')
-
+GetJamfProAPIToken
 
 # An associative array to hold the IDs of computers with each status from statusTexts
 typeset -A computersWithStatus
@@ -203,13 +213,18 @@ rm temp.xml
 declare -a mdmIssueComputers=()
 
 
-# Convert computerIds to an array
+# Convert computerIds to an array and sort it numberically
 computerIds_ARR=()
 for id in ${(ps:\n:)computerIds}; do
   computerIds_ARR+=("$id")
 done
 
-echo "Searching for all computers in Smart Group ID: $smartGroupId"
+computerIds_ARR=(${(on)computerIds_ARR})
+
+# Count of all computer IDs
+numberOfComputerIds=${#computerIds_ARR[@]}
+
+echo "Searching for all computers in Smart Group ID: $smartGroupId ($numberOfComputerIds computers)"
 
 count=0
 
@@ -222,7 +237,7 @@ for computerId in "${computerIds_ARR[@]}"; do
   curlExitStatus=$?
   
   if [[ ${curlExitStatus} -eq 22 ]]; then
-    echo "Computer not found for ID: ${computerId}, HTTP 401 error encountered."
+    echo "Curl issue with ${computerId}, Error response: $curlExitStatus"
     continue
   fi
 
@@ -246,9 +261,11 @@ for computerId in "${computerIds_ARR[@]}"; do
   rm temp.xml
   echo ""
 
-  # if 100 records have been searched renew API Token
+  # if 100 records have been searched report progress and renew API Token
   if ((count % 100 == 0)); then
-    echo "\\nChecking API token\\n"
+    percentageComplete=$((100 * count / numberOfComputerIds))
+    echo "\\n$percentageComplete% complete"
+    echo "Checking API token\\n"
     CheckAndRenewAPIToken
   fi
 
@@ -256,13 +273,34 @@ done
 
 # Print out the list of IDs for each status for final confirmation
 for statusMessage in "${statusTexts[@]}"; do
-  echo "\\n-------\\n-------\\nList of computer IDs with issue '${statusMessage}':"
+  # Print to console
+  echo "\n-------\n-------\nList of computer IDs with issue '${statusMessage}':"
   echo ${computersWithStatus[$statusMessage]}
-  echo "\\nURLs:"
-  for computerId in ${(ps: :)computersWithStatus[$statusMessage]}
-    do
-        echo "${myJssBaseurl}computers.html?id=${computerId}&o=r"
+  echo "\nURLs:"
+  for computerId in ${(ps: :)computersWithStatus[$statusMessage]}; do
+    echo "${myJssBaseurl}computers.html?id=${computerId}&o=r"
   done
   echo ""
+  
+  # Check if reportLocation is not empty
+  if [[ -n $reportLocation ]]; then
+    # Append to report file
+    echo "\n-------\n-------\nList of computer IDs with issue '${statusMessage}':" >> "$reportLocation"
+    echo ${computersWithStatus[$statusMessage]} >> "$reportLocation"
+    echo "\nURLs:" >> "$reportLocation"
+    for computerId in ${(ps: :)computersWithStatus[$statusMessage]}; do
+      echo "${myJssBaseurl}computers.html?id=${computerId}&o=r" >> "$reportLocation"
+    done
+    echo "" >> "$reportLocation"
+  fi
+  
 done
-InvalidateToken
+
+if [[ -n $reportLocation ]]; then
+  echo "Report saved at $reportLocation"
+  open $reportLocation
+else
+  echo "reportLocation variable not set. Report not saved to txt file"
+fi
+
+# InvalidateToken
