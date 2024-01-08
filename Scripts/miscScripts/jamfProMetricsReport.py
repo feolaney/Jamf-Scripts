@@ -1,16 +1,18 @@
 import requests
 import subprocess
+from getpass import getpass
 
 # read jamf url from system defaults
 myJssBaseurl = subprocess.getoutput("/usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf jss_url")
 jamf_url = f"{myJssBaseurl}api/v1/jamf-management-framework/redeploy/"
 
-# your bearer token
-bearer_token = '<bearer_token_here>'
+# Ask for bearer token
+bearer_token = getpass('Please enter bearer token: ')
+
 headers = {'Authorization': 'Bearer %s' % bearer_token}
 
 #Your smart groups IDs
-smart_group_ids = ['<id1>', '<id2>', '<id3>',...] #Replace with your IDs
+smart_group_ids = ['296', '297', '298','299','377']
 
 def get_info_smartgroup(smart_group_id):
     # your JAMF Pro end point - replace placeholder with actual endpoint
