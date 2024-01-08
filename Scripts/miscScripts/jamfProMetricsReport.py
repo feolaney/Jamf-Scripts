@@ -49,8 +49,7 @@ if __name__ == "__main__":
             results.append(smartgroup_info)
             total_count += smartgroup_info[1]
 
-    # It's now the order they were checked, because we don't sort it anymore
-    #Print the results
+
     for res in results:
         print('Smart Group Name: {}, Number of Computers: {}'.format(res[0],res[1]))
 
