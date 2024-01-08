@@ -17,7 +17,6 @@ smart_group_ids = ['296', '297', '298','299','377']
 
 def get_info_smartgroup(smart_group_id):
     # your JAMF Pro endpoint
-    print(f'{myJssBaseurl}JSSResource/computergroups/id/{smart_group_id}')
     endpoint = f'{myJssBaseurl}JSSResource/computergroups/id/{smart_group_id}'
 
     # send a GET request to the JAMF Pro endpoint
