@@ -1,27 +1,26 @@
 import requests
-import sys
 import subprocess
 from getpass import getpass
 from xml.etree import ElementTree
 
-# read jamf url from system defaults
+# read Jamf Pro URL from system defaults
 myJssBaseurl = subprocess.getoutput("/usr/bin/defaults read /Library/Preferences/com.jamfsoftware.jamf jss_url")
 
 # Ask for bearer token
 bearerToken = getpass('Please enter bearer token: ')
-
 headers = {'Authorization': 'Bearer %s' % bearerToken}
 
-#Your smart groups IDs
-smartGroupIDs = ['296', '297', '298','299','377']
-# Add your new separate group ids
+# List of smart group IDs to check
+smartGroupIDs = ['296', '297', '298', '299', '377']
+
+# IDs of separate groups to be totalled separately
 totalEnrolledDevices = ['1', '203']
 
 def getInfoSmartGroup(smartGroupID):
-    # your JAMF Pro endpoint
+    # Formatting API endpoint URL
     endpoint = f'{myJssBaseurl}JSSResource/computergroups/id/{smartGroupID}'
 
-    # send a GET request to the JAMF Pro endpoint
+    # Sending GET request and handling possible HTTP error
     try:
         response = requests.get(endpoint, headers=headers)
         response.raise_for_status()
@@ -29,10 +28,8 @@ def getInfoSmartGroup(smartGroupID):
         print ("HTTP Error:", errh)
         return None
 
-    # get the XML response body
+    # Parsing XML response and retrieving group name and computer count
     data = ElementTree.fromstring(response.content)
-
-    # We will get group name and computers count from response.
     groupName = data.find("name").text
     computerCount = len(data.findall(".//computer"))
 
@@ -42,22 +39,21 @@ if __name__ == "__main__":
     results = []
     totalCount = 0 
 
+    # Looping over smartGroupIDs to get group info and update total count
     for gid in smartGroupIDs:
         smartgroupInfo = getInfoSmartGroup(gid)
-
-        # handle case where getInfoSmartGroup returns None
         if smartgroupInfo is not None:
             results.append(smartgroupInfo)
             totalCount += smartgroupInfo[1]
 
-    #Print the results
+    # Output smart group information
     for res in results:
-        print('Smart Group Name: {}, Number of Computers: {}'.format(res[0],res[1]))
+        print('Smart Group Name: {}, Number of Computers: {}'.format(res[0], res[1]))
 
-    # Print total count
+    # Print total count across all smart groups
     print('Total Number of Computers: {}'.format(totalCount))
 
-    # Now deal with the separate groups
+    # Processing separate groups
     print('Separate Groups:')
     for gid in totalEnrolledDevices:
         smartgroupInfo = getInfoSmartGroup(gid)
