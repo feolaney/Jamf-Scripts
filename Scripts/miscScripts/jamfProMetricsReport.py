@@ -14,6 +14,8 @@ headers = {'Authorization': 'Bearer %s' % bearer_token}
 
 #Your smart groups IDs
 smart_group_ids = ['296', '297', '298','299','377']
+# Add your new separate group ids
+total_enrolled_devices = ['1', '203']
 
 def get_info_smartgroup(smart_group_id):
     # your JAMF Pro endpoint
@@ -48,9 +50,16 @@ if __name__ == "__main__":
             results.append(smartgroup_info)
             total_count += smartgroup_info[1]
 
-
+    #Print the results
     for res in results:
         print('Smart Group Name: {}, Number of Computers: {}'.format(res[0],res[1]))
 
     # Print total count
     print('Total Number of Computers: {}'.format(total_count))
+
+    # Now deal with the separate groups
+    print('Separate Groups:')
+    for gid in total_enrolled_devices:
+        smartgroup_info = get_info_smartgroup(gid)
+        if smartgroup_info is not None:
+            print('Smart Group Name: {}, Number of Computers: {}'.format(smartgroup_info[0], smartgroup_info[1]))
