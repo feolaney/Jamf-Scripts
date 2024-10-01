@@ -3,8 +3,8 @@
 # Script Information:
 # 
 # Author        : Stephen Laney
-# Creation Date : 9/25/2024
-# Last Modified : 9/25/2024
+# Creation Date : 09/25/2024
+# Last Modified : 10/01/2024
 # 
 # Purpose     : Automate the download and caching of application installers using Installomator
 # Usage       : Executed from a Jamf policy with a space-separated list of applications as the fourth parameter
