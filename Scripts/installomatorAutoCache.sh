@@ -65,7 +65,13 @@
 #
 # Label for Jamf Options parameter 4:
 # List of Installomator labels to cache separated by spaces e.g. firefoxpkg arcbrowser zoom
-
+# ----------------------
+# ----------------------
+# Parameters
+# ----------------------
+# Number of versions to keep cached
+numberOfCachedVersions=10
+# ----------------------
 # Check if $4 is provided
 if [ -z "$4" ]; then
     echo "No applications specified. Please provide a space-separated list of applications as the fourth parameter."
@@ -194,11 +200,11 @@ handleDownloadedFiles() {
 # Function to clean up old files and directories
 cleanupOldFilesAndDirs() {
     local appDir="$1"
-    
-    # Check the number of files in the app directory and delete the oldest if there are more than 10
+
+    # Check the number of files in the app directory and delete the oldest if there are more than numberOfCachedVersions
     fileCount=$(find "$appDir" -maxdepth 1 -type f | wc -l)
-    if [ "$fileCount" -gt 10 ]; then
-        oldestFiles=$(find "$appDir" -maxdepth 1 -type f -print0 | xargs -0 ls -t | tail -n $((fileCount - 10)))
+    if [ "$fileCount" -gt "$numberOfCachedVersions" ]; then
+        oldestFiles=$(find "$appDir" -maxdepth 1 -type f -print0 | xargs -0 ls -t | tail -n $((fileCount - numberOfCachedVersions)))
         while IFS= read -r file; do
             echo "Deleting file: $file"  # Debug statement
             rm "$file"
@@ -206,10 +212,10 @@ cleanupOldFilesAndDirs() {
         done <<< "$oldestFiles"
     fi
 
-    # Check the number of child directories in the app directory and delete the oldest if there are more than 10
+    # Check the number of child directories in the app directory and delete the oldest if there are more than numberOfCachedVersions
     dirCount=$(find "$appDir" -maxdepth 1 -type d -not -name "*.app" -not -name "*.zip" | wc -l)
-    if [ "$dirCount" -gt 10 ]; then
-        oldestDirs=$(find "$appDir" -maxdepth 1 -type d -not -name "*.app" -not -name "*.zip" -exec stat -f "%m %N" {} \; | sort -n | head -n $((dirCount - 10)) | cut -d ' ' -f 2-)
+    if [ "$dirCount" -gt "$numberOfCachedVersions" ]; then
+        oldestDirs=$(find "$appDir" -maxdepth 1 -type d -not -name "*.app" -not -name "*.zip" -exec stat -f "%m %N" {} \; | sort -n | head -n $((dirCount - numberOfCachedVersions)) | cut -d ' ' -f 2-)
         while IFS= read -r dir; do
             echo "Deleting directory: $dir"  # Debug statement
             rm -rf "$dir"
