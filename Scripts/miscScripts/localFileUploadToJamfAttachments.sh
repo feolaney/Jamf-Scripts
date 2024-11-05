@@ -11,7 +11,7 @@
 #    or to pass them as parameters in the script.
 
 # Modify how your script will get the two following variables:
-apiUser="itadmin"
+apiUser="username"
 apiPassword=""
 
 # Path of log to upload passed as parameter $4
