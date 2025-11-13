@@ -34,6 +34,9 @@
 # to the automation software or API used to generate the S3 bucket URL.
 AUTOMATION_API="https://example.com/automation/api" # replace with your API URL
 API_TOKEN_HEADER="API-TOKEN" # replace with your API token header
+# When polling for the presigned URL, the placeholder __UUID__ will be replaced
+# with the UUID returned by your automation. Update this template to match your API.
+PRESIGNED_STATUS_URL_TEMPLATE="${AUTOMATION_API}/status/__UUID__"
 # 
 #
 #  TODO - HOMEWORK IF THIS SCRIPT IS TO BE ADOPTED AND USED
@@ -94,7 +97,7 @@ logTypeValues=("${(@v)logTypeMap}")
 # *****************************************************************************************************
 # Global Variables
 # *****************************************************************************************************
-# Function to decrypt workato tokens passed via Jamf
+# Function to decrypt automation tokens passed via Jamf
 function DecryptString() {
     # Usage: ~$ DecryptString "Encrypted String" "Salt" "Passphrase"
     echo "${1}" | /usr/bin/openssl enc -aes256 -md md5 -d -a -A -S "${2}" -k "${3}"
@@ -129,7 +132,17 @@ processLogType() {
 
     # First curl request to start the generation of S3 bucket url, returns UUID to be used to check progress and eventually
     # obtain S3 upload URL, logic built into createCheckLogStatusAndUploadScript function
-    returned_uuid=$(generateS3BucketURL "$workatoApiToken" "$computerName" "$logType" "$timestamp")
+    returned_uuid=$(generateS3BucketURL "$automationApiToken" "$computerName" "$logType" "$timestamp")
+
+    configPrefix="${tmpDirectoryPath}/${logType}_${returned_uuid}"
+    automationTokenFile="${configPrefix}.token"
+    statusTemplateFile="${configPrefix}.template"
+    apiHeaderFile="${configPrefix}.header"
+
+    printf '%s' "$automationApiToken" > "$automationTokenFile"
+    printf '%s' "$PRESIGNED_STATUS_URL_TEMPLATE" > "$statusTemplateFile"
+    printf '%s' "$API_TOKEN_HEADER" > "$apiHeaderFile"
+    chmod 600 "$automationTokenFile" "$statusTemplateFile" "$apiHeaderFile"
 
     #Find log files that have been placed in the tmp directory path
     deletePrefixedFiles "/var/tmp" "$logType"
@@ -254,7 +267,7 @@ processLogType() {
     # fi
     # *****************************************************************************************************
     # Create the check script at /var/tmp
-    createCheckLogStatusAndUploadScript "$returned_uuid" "$strippedLaunchDaemonLabel" "$launchDaemonFullPath" "$scriptFullPath" "$logType"
+    createCheckLogStatusAndUploadScript "$returned_uuid" "$strippedLaunchDaemonLabel" "$launchDaemonFullPath" "$scriptFullPath" "$logType" "$automationTokenFile" "$statusTemplateFile" "$apiHeaderFile"
 
     # Create and load the launch daemon used to periodically check if the log files and the S3 URL is ready
     createAndLoadLaunchDaemon "$scriptFullPath" "$launchDaemonFullPath" "$logType"
@@ -267,6 +280,9 @@ createCheckLogStatusAndUploadScript() {
     launchDaemonFullPath="$3"
     scriptFullPath="$4"
     logType="$5"
+    automationTokenFile="$6"
+    statusTemplateFile="$7"
+    apiHeaderFile="$8"
     cat > "$scriptFullPath" << EOL
 #!/bin/zsh
 
@@ -274,37 +290,70 @@ tmpDirectoryPath="/var/tmp"
 ${logType}Files=\$(ls -1d "\$tmpDirectoryPath"/${logType}*)
 logFile="\$tmpDirectoryPath/check${logType}.log"
 timestamp=\$(date +"[%Y-%m-%d %H:%M:%S]")
+automationTokenFile="$automationTokenFile"
+statusTemplateFile="$statusTemplateFile"
+apiHeaderFile="$apiHeaderFile"
+scriptFullPath="$scriptFullPath"
+launchDaemonFullPath="$launchDaemonFullPath"
+strippedLaunchDaemonLabel="$strippedLaunchDaemonLabel"
+
+cleanupArtifacts() {
+    sudo rm -f "\$scriptFullPath" 2>> "\$logFile"
+    sudo rm -f "\$launchDaemonFullPath" 2>> "\$logFile"
+    sudo launchctl remove "$strippedLaunchDaemonLabel" 2>> "\$logFile"
+    sudo rm -f "\$automationTokenFile" "\$statusTemplateFile" "\$apiHeaderFile" 2>> "\$logFile"
+}
 
 if [ "\${#${logType}Files[@]}" -gt 0 ]; then
     ${logType}FileToUpload=\$(ls -1d "\$tmpDirectoryPath"/${logType}* | head -n 1)
     echo "\$timestamp ${logType} files and directories found:" | tee -a \$logFile
     echo "\$timestamp \$${logType}FileToUpload" | tee -a \$logFile
 
+    if [[ ! -r "\$automationTokenFile" || ! -r "\$statusTemplateFile" || ! -r "\$apiHeaderFile" ]]; then
+        echo "\$timestamp Missing automation configuration files. Exiting." | tee -a \$logFile
+        cleanupArtifacts
+        exit 1
+    fi
+
+    automationApiToken=\$(cat "\$automationTokenFile")
+    statusUrlTemplate=\$(cat "\$statusTemplateFile")
+    apiTokenHeader=\$(cat "\$apiHeaderFile")
+
+    if [[ "\$statusUrlTemplate" == *"__UUID__"* ]]; then
+        statusEndpoint="\${statusUrlTemplate//__UUID__/${localUuid}}"
+    else
+        trimmedTemplate=\${statusUrlTemplate%/}
+        statusEndpoint="\${trimmedTemplate}/${localUuid}"
+    fi
+
     # Repeat up to 30 times
     for i in {1..30}; do
-        workatoURLResponse=\$(curl -s -H "API-TOKEN: "$workatoApiToken"" "https://apim.workato.com/cour/jamf/lambda-presigned-url/"${localUuid}"")
+        presignedUrlResponse=\$(curl -s -H "\$apiTokenHeader: \$automationApiToken" "\$statusEndpoint")
 
         # Check if the curl command outputs an error
         if [[ $? -ne 0 ]]; then
-            echo "\$timestamp An error occurred while fetching the URL" >> {$logFile}
-            break # Exit the loop if a curl error occurs
+            echo "\$timestamp An error occurred while fetching the URL" | tee -a \$logFile
+            s3URL=""
+            break
         fi
 
-        s3URL=\$(echo "\$workatoURLResponse" | sed -E 's/.*"url":"([^"]+).*/\1/')
+        s3URL=\$(echo "\$presignedUrlResponse" | sed -E 's/.*"url":"([^"]+).*/\1/')
         echo "\$timestamp URL: \$s3URL"  >> \$logFile
 
-        if [[ "\$s3URL" != *'"response":"Did not find'* ]]; then
+        if [[ "\$s3URL" != *'"response":"Did not find'* && -n "\$s3URL" ]]; then
             break
         fi
 
         # Wait for 10 seconds
-        echo "S3 Upload URL not ready, checing again in 10 seconds" | tee -a \$logFile
+        echo "S3 Upload URL not ready, checking again in 10 seconds" | tee -a \$logFile
         sleep 10
     done
 
-    if [[ "\$s3URL" == *'"response":"Did not find'* ]]; then
-            break
-        fi
+    if [[ -z "\$s3URL" || "\$s3URL" == *'"response":"Did not find'* ]]; then
+        echo "\$timestamp Presigned URL was not returned within the expected window." | tee -a \$logFile
+        cleanupArtifacts
+        exit 1
+    fi
 
     # Submitting ${logType} file to S3 bucket
     echo "\$timestamp Submitting ${logType} file to S3 bucket" >> \$logFile
@@ -321,20 +370,11 @@ if [ "\${#${logType}Files[@]}" -gt 0 ]; then
         echo "\$timestamp The API responded poorly" >> \$logFile
     fi
     
-    # Delete the script file
-    echo "\$timestamp Deleting the script file" >> \$logFile
-    sudo rm -f "$scriptFullPath" 2>> \$logFile
-
-    # Delete the launchdaemon plist file
-    echo "\$timestamp Deleting the launchdaemon plist file" >> \$logFile
-    sudo rm -f "$launchDaemonFullPath" 2>> "\$logFile"
-
-    # Unload the launchdaemon
-    echo "\$timestamp Unloading the launchdaemon $strippedLaunchDaemonLabel" >> \$logFile
-    sudo launchctl remove "$strippedLaunchDaemonLabel" 2>> \$logFile
+    cleanupArtifacts
 
 else
     echo "\$timestamp No ${logType} files or directories found" >> "\$logFile"
+    cleanupArtifacts
 fi
 EOL
 
@@ -388,13 +428,15 @@ deletePrefixedFiles() {
 
 # Function to generate S3 bucket URL using automation software or API and return the UUID
 generateS3BucketURL() {
-    automationApiToken="$1"
-    computerName="$2"
-    logType="$3"
-    timestamp="$4"
+    local automationApiToken="$1"
+    local computerName="$2"
+    local logType="$3"
+    local timestamp="$4"
     
     # First curl request to start the generation of S3 bucket url
+    local uuidCurlResponse
     uuidCurlResponse=$(curl -s -XPOST -H "${API_TOKEN_HEADER}: $automationApiToken" "${AUTOMATION_API}/LogUploads/$computerName-$logType-$timestamp.txt")
+    local uuid
     uuid=$(echo "$uuidCurlResponse" | sed -E 's/.*"uuid":"([^"]+).*/\1/')
     
     echo "$uuid"

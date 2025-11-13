@@ -11,10 +11,10 @@ bearerToken = getpass('Please enter bearer token: ')
 headers = {'Authorization': 'Bearer %s' % bearerToken}
 
 # List of smart group IDs to check
-smartGroupIDs = ['296', '297', '298', '299', '377']
+smartGroupIDs = ['1', '2', '3', '4', '5']
 
 # IDs of separate groups to be totalled separately
-totalEnrolledDevices = ['1', '203']
+totalEnrolledDevices = ['1', '2', '3', '4', '5']
 
 def getInfoSmartGroup(smartGroupID):
     # Formatting API endpoint URL

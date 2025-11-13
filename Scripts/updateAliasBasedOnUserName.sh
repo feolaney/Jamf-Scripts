@@ -23,8 +23,8 @@
 #
 # The following variable should be set as the url that will be curled for the username
 #     information from the external asset management system:
-$externalAssetManagement_URL=""
-# Example $externalAssetManagement_URL: "https://apim.externalAssetManagement.com/asset?action=get_asset_asset-information&identifier=$deviceSerialNumber"
+externalAssetManagement_URL="https://assets.example.com/asset?action=get_user&identifier=\${deviceSerialNumber}"
+# Example externalAssetManagement_URL: "https://your-asset-api.example.com/asset?action=get_user&identifier=\${deviceSerialNumber}"
 # 
 # If deployed with Jamf be sure to include the base64 encrypted string, salt and 
 #     passphrase of the external asset management token as the first 3 parameters
@@ -92,5 +92,4 @@ else
     echo "Setting alias $firstName for /Users/$currentUsername"
     sudo dscl . -merge /Users/${currentUsername} RecordName ${firstName}
 fi
-
 
